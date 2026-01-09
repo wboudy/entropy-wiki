@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
-import '../styles/globals.css'
+import { Inter } from 'next/font/google'
+import { ThemeProvider } from '@/components/providers/theme-provider'
+import '@/styles/globals.css'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   title: 'Entropy Wiki',
@@ -12,8 +16,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
