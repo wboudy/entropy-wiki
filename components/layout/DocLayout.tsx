@@ -20,7 +20,7 @@ export function DocLayout({ children, sidebar }: DocLayoutProps) {
       <div className="container flex-1 items-start md:grid md:grid-cols-[260px_minmax(0,1fr)] md:gap-8 lg:gap-12">
         {sidebar && sidebar.length > 0 && <Sidebar items={sidebar} />}
 
-        <main className="relative py-6 lg:py-8 w-full">
+        <main className={`relative py-6 lg:py-8 w-full ${!sidebar || sidebar.length === 0 ? 'md:col-span-2' : ''}`}>
           {children}
         </main>
       </div>
