@@ -4,9 +4,9 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { DocLayout } from '@/components/layout/DocLayout'
+import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { getDocBySlug, docExists } from '@/lib/mdx/get-doc-by-slug'
 import { getAllDocs } from '@/lib/mdx/get-all-docs'
-import { parseTableOfContents } from '@/lib/mdx/parse-toc'
 import { buildSectionNavTree } from '@/lib/navigation/build-nav-tree'
 
 interface DocPageProps {
@@ -66,15 +66,14 @@ export default async function DocPage({ params }: DocPageProps) {
   const section = slug[0]
   const sidebarNav = buildSectionNavTree(section)
 
-  // Parse table of contents from the raw content
-  const toc = parseTableOfContents(doc.content)
-
   return (
-    <DocLayout sidebar={sidebarNav} toc={toc}>
-      <article className="prose prose-slate dark:prose-invert max-w-none">
-        <h1>{doc.frontMatter.title}</h1>
+    <DocLayout sidebar={sidebarNav}>
+      <Breadcrumb slug={slug} />
+
+      <article className="prose prose-slate dark:prose-invert max-w-none mt-2">
+        <h1 className="mb-2">{doc.frontMatter.title}</h1>
         {doc.frontMatter.description && (
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl text-muted-foreground mb-8">
             {doc.frontMatter.description}
           </p>
         )}
