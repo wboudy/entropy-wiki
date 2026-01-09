@@ -3,10 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const PAGES_DIR = path.join(__dirname, '..', 'pages');
+const PAGES_DIR = path.join(__dirname, '..', 'app');
 
 const TOP_LEVEL_ORDER = {
-  'index': 0,
+  'page': 0,
   'beads': 1,
   'gastown': 2,
   'skills-bank': 3,
@@ -18,7 +18,7 @@ const TOP_LEVEL_ORDER = {
 };
 
 const CUSTOM_TITLES = {
-  'index': 'Home',
+  'page': 'Home',
   'beads': 'Beads',
   'gastown': 'Gastown',
   'skills-bank': 'Skills Bank',
