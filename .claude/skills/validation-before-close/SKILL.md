@@ -80,6 +80,52 @@ npm run build
 python setup.py build
 ```
 
+### 2.5. Frontend Validation (if applicable)
+
+**For frontend changes** (components, layouts, styles, UI), invoke the **playwright-testing skill** to perform visual and functional validation:
+
+**When to invoke:**
+- Changes to React/Vue/Svelte components
+- CSS/styling modifications
+- Layout changes
+- New UI features
+- User interaction changes
+
+**What playwright-testing will do:**
+1. Navigate to affected pages
+2. Take screenshots (before/after if baseline exists)
+3. Test interactions (clicks, forms, navigation)
+4. Verify responsive behavior (mobile/tablet/desktop)
+5. Check for console errors
+6. Validate theme toggle (if applicable)
+7. Report PASS/FAIL
+
+**Example invocation:**
+```markdown
+Frontend change detected:
+  ↓
+1. Run build: npm run build ✅
+2. Invoke playwright-testing skill:
+   - Debug layout issues
+   - Validate visual regressions
+   - Test functional flows
+3. Review screenshots and test results
+4. Fix any issues found
+5. Re-validate
+
+If playwright-testing reports PASS → Continue
+If playwright-testing reports FAIL → Create bug bead, fix, re-validate
+```
+
+**For entropy-wiki specifically:**
+- Test pages: /beads, /skills-bank, /prompt-bank, /tooling-mcp
+- Verify content uses full width (not narrow column)
+- Check sidebar navigation
+- Test theme toggle
+- Verify search functionality
+
+See `playwright-testing` skill for detailed testing patterns.
+
 ### 3. Check Deployment (if applicable)
 
 For deployed projects, verify deployment:
