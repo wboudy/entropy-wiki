@@ -56,11 +56,25 @@
     "category": "gastown"
   },
   {
+    "id": "orchestration",
+    "title": "README",
+    "content": "Orchestration Multi-agent coordination patterns and handoff protocols.  What is Orchestration? Orchestration defines how multiple AI agents work together to solve complex problems. It covers task distribution, state management, and agent-to-agent communication.  Core Concepts Key orchestration patterns include: - Sequential workflows (agent chains) - Parallel execution (concurrent tasks) - Hierarchical coordination (supervisor/worker) - Event-driven handoffs  Protocols This section documents: - Handoff protocols between agents - State synchronization patterns - Error handling and recovery - Performance optimization strategies Use these patterns to build robust multi-agent systems that coordinate effectively and handle failures gracefully.",
+    "url": "/orchestration",
+    "category": "orchestration"
+  },
+  {
     "id": "orchestration/claude-code-multi-agent-workflow",
     "title": "claude-code-multi-agent-workflow",
     "content": "Beads + Claude Code: Multi-Agent Workflow Architecture > VER: 1.0.0 > STATUS: Production > LASTUPDATED: 2026-01-08  Question How should we coordinate terminal (bd CLI) and Claude Code when working through epics? One agent per epic, or multiple agents per epic? ---  Answer: Multiple Agents Per Epic (Dependency-Driven Parallelism) Beads is explicitly designed for multi-session AI agent workflows where: - Multiple Claude Code agents work in parallel on different tasks within the same epic - Terminal serves as coordination point for planning and monitoring - Dependencies define execution order, not manual sequencing - Context survives across sessions via git-backed persistence ---  Core Design Philosophy > \"Beads is a git-backed issue tracking system designed for AI agents to maintain context across conversation sessions, manage dependencies, and coordinate complex multi-session work.\" > > —   Key Principle: Persistence Over Optimization - When in doubt, track it in beads - Conversations a",
     "url": "/orchestration/claude-code-multi-agent-workflow",
     "category": "orchestration"
+  },
+  {
+    "id": "prompt-bank",
+    "title": "README",
+    "content": "Prompt Bank High-performance, battle-tested prompts for AI agents and LLMs.  What is Prompt Bank? Prompt Bank is a curated collection of effective prompts organized by use case. Each prompt is optimized for clarity, specificity, and reliable output.  Categories Prompts are categorized by: - Task type (generation, analysis, refactoring, etc.) - Domain (code, documentation, data processing) - Complexity level  Usage Each prompt includes: - Clear objective statement - Input format requirements - Expected output structure - Example usage Browse the collection to find prompts that fit your workflow, or use them as templates for custom variations.",
+    "url": "/prompt-bank",
+    "category": "prompt-bank"
   },
   {
     "id": "prompt-bank/the-refiner",
@@ -70,11 +84,25 @@
     "category": "prompt-bank"
   },
   {
+    "id": "skills-bank",
+    "title": "README",
+    "content": "Skills Bank A collection of reusable AI agent capabilities and skill definitions.  What is Skills Bank? Skills Bank provides modular, plug-and-play capabilities for AI agents. Each skill is a self-contained unit that can be deployed, tested, and reused across different contexts.  Structure Skills are organized by capability type and include: - Skill templates - Implementation patterns - Testing strategies - Integration guides  Getting Started Browse the available skills to find capabilities that match your needs. Each skill includes clear documentation on usage, dependencies, and examples.",
+    "url": "/skills-bank",
+    "category": "skills-bank"
+  },
+  {
     "id": "skills-bank/template-skill",
     "title": "template-skill",
     "content": "SKILLTEMPLATE || VER: 1.0.2 > [!NOTE] > Use this template to define a skill with maximum operational clarity.  Metadata - Name: - Owner: - Domain: - Version: - Status: draft | active | deprecated - Last Updated:  Inputs - Required: - Optional: - Constraints:  Outputs - Primary: - Secondary: - Quality Gates:  Required Tools - Local: - External: - MCP:  Logic Flow 1.  2.  3.   Edge Cases -   Verification -  > [!TIP] > Keep logic flow executable. If a step can't be performed, delete it. > [!CAUTION] > Avoid cross-skill dependencies unless they are version-pinned.",
     "url": "/skills-bank/template-skill",
     "category": "skills-bank"
+  },
+  {
+    "id": "tooling-mcp",
+    "title": "README",
+    "content": "Tooling & MCP MCP server configurations and custom tool definitions for AI agents.  What is MCP? Model Context Protocol (MCP) provides a standardized way to connect AI agents to external tools, data sources, and services.  Contents This section includes: - MCP server configurations - Custom tool definitions - Integration patterns - Connection examples  Getting Started MCP enables AI agents to interact with: - File systems - Databases - APIs and web services - Development tools - Custom business logic Each tool definition includes schema, usage examples, and configuration guidance.",
+    "url": "/tooling-mcp",
+    "category": "tooling-mcp"
   },
   {
     "id": "tooling-mcp/mcp-standard",

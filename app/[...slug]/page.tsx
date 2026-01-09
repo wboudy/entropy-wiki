@@ -66,6 +66,9 @@ export default async function DocPage({ params }: DocPageProps) {
   const section = slug[0]
   const sidebarNav = buildSectionNavTree(section)
 
+  // Remove the first h1 from content since we already extract it as title
+  const contentWithoutTitle = doc.content.replace(/^#\s+.+$/m, '').trim()
+
   return (
     <DocLayout sidebar={sidebarNav}>
       <Breadcrumb slug={slug} />
@@ -81,7 +84,7 @@ export default async function DocPage({ params }: DocPageProps) {
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSanitize]}
         >
-          {doc.content}
+          {contentWithoutTitle}
         </ReactMarkdown>
       </article>
     </DocLayout>
