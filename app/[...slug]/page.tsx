@@ -76,7 +76,7 @@ export default async function DocPage({ params }: DocPageProps) {
             {doc.frontMatter.description}
           </p>
         )}
-        <MDXRemote source={doc.content} components={components} />
+        <MDXRemote source={doc.content} />
       </article>
     </DocLayout>
   )
