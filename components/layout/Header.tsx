@@ -1,9 +1,24 @@
+"use client"
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { MobileNav } from '../navigation/MobileNav'
+import { SearchDialog } from '../search/SearchDialog'
 import { siteConfig } from '@/config/site'
+import type { SearchIndex } from '@/lib/search/types'
 
 export function Header() {
+  const [searchData, setSearchData] = useState<SearchIndex[]>([])
+
+  useEffect(() => {
+    // Load search index
+    fetch('/search-index.json')
+      .then((res) => res.json())
+      .then((data) => setSearchData(data))
+      .catch((err) => console.error('Failed to load search index:', err))
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -18,7 +33,7 @@ export function Header() {
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Search will go here */}
+            <SearchDialog searchData={searchData} />
           </div>
 
           <nav className="flex items-center space-x-2">

@@ -2,26 +2,62 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Search } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
+import { DocumentSearch } from '@/lib/search/search'
+import type { SearchIndex, SearchResult } from '@/lib/search/types'
 
 interface SearchDialogProps {
-  searchData?: any[]
+  searchData?: SearchIndex[]
 }
 
-export function SearchDialog({ searchData }: SearchDialogProps) {
+export function SearchDialog({ searchData = [] }: SearchDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [searchInstance, setSearchInstance] = useState<DocumentSearch | null>(null)
+  const router = useRouter()
 
+  // Initialize search instance
+  useEffect(() => {
+    if (searchData.length > 0) {
+      setSearchInstance(new DocumentSearch(searchData))
+    }
+  }, [searchData])
+
+  // Keyboard shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         setIsOpen((open) => !open)
       }
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+      }
     }
 
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
   }, [])
+
+  // Perform search when query changes
+  useEffect(() => {
+    if (!searchInstance || !query.trim()) {
+      setResults([])
+      return
+    }
+
+    const searchResults = searchInstance.search(query, { limit: 10 })
+    setResults(searchResults)
+  }, [query, searchInstance])
+
+  const handleResultClick = (url: string) => {
+    setIsOpen(false)
+    setQuery('')
+    setResults([])
+    router.push(url)
+  }
 
   return (
     <>
@@ -52,13 +88,42 @@ export function SearchDialog({ searchData }: SearchDialogProps) {
               <input
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Search documentation..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 autoFocus
               />
             </div>
-            <div className="max-h-[300px] overflow-y-auto p-4">
-              <p className="text-sm text-muted-foreground">
-                Search functionality will be implemented with FlexSearch integration.
-              </p>
+            <div className="max-h-[400px] overflow-y-auto">
+              {!query.trim() ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Start typing to search documentation...
+                </div>
+              ) : results.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No results found for "{query}"
+                </div>
+              ) : (
+                <div className="py-2">
+                  {results.map((result) => (
+                    <button
+                      key={result.id}
+                      className="flex w-full flex-col gap-1 rounded-sm px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => handleResultClick(result.url)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground capitalize">
+                          {result.category}
+                        </span>
+                        <span className="text-xs text-muted-foreground">›</span>
+                        <span className="font-medium text-sm">{result.title}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {result.content.slice(0, 150)}...
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
