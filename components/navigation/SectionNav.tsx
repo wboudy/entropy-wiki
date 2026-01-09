@@ -9,6 +9,7 @@ const SECTIONS = [
   { name: 'Gastown', href: '/gastown', description: 'Multi-agent orchestration' },
   { name: 'Skills Bank', href: '/skills-bank', description: 'Reusable capabilities' },
   { name: 'Prompt Bank', href: '/prompt-bank', description: 'High-performance prompts' },
+  { name: 'Plugins', href: '/plugins', description: 'Browser automation & tooling' },
   { name: 'Tooling & MCP', href: '/tooling-mcp', description: 'MCP servers & tools' },
   { name: 'Orchestration', href: '/orchestration', description: 'Multi-agent handoffs' },
 ]

@@ -61,6 +61,13 @@ export function MobileNav() {
               Prompt Bank
             </Link>
             <Link
+              href="/plugins"
+              onClick={() => setIsOpen(false)}
+              className="hover:text-foreground/80"
+            >
+              Plugins
+            </Link>
+            <Link
               href="/tooling-mcp"
               onClick={() => setIsOpen(false)}
               className="hover:text-foreground/80"
