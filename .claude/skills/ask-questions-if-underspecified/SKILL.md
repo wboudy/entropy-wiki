@@ -1,6 +1,6 @@
 ---
 name: ask-questions-if-underspecified
-description: Clarify requirements before implementing. Do not use automatically, only when invoked explicitly.
+description: Clarify requirements before implementing. Use automatically during task-intake phase for any non-trivial task to eliminate ambiguity upfront and enable autonomous execution loops without mid-implementation interruptions.
 ---
 
 # Ask Questions If Underspecified
