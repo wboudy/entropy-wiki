@@ -148,18 +148,24 @@ async function migratePages(pages: PageData[]): Promise<void> {
       const pageId = uuidv4();
       const revisionId = uuidv4();
 
-      // Create revision
+      // Create page first (without revision reference)
+      await client.query(
+        `INSERT INTO pages (id, slug, title, status, visibility)
+         VALUES ($1, $2, $3, 'published', 'public')`,
+        [pageId, page.slug, page.title]
+      );
+
+      // Create revision (now page exists for FK)
       await client.query(
         `INSERT INTO page_revisions (id, page_id, content_md, author_type)
          VALUES ($1, $2, $3, 'human')`,
         [revisionId, pageId, page.content_md]
       );
 
-      // Create page as published
+      // Update page with revision reference
       await client.query(
-        `INSERT INTO pages (id, slug, title, status, visibility, current_published_revision_id)
-         VALUES ($1, $2, $3, 'published', 'public', $4)`,
-        [pageId, page.slug, page.title, revisionId]
+        `UPDATE pages SET current_published_revision_id = $1 WHERE id = $2`,
+        [revisionId, pageId]
       );
 
       await client.query('COMMIT');

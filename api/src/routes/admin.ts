@@ -104,20 +104,27 @@ router.post('/pages', async (req: Request, res: Response) => {
     const status = body.status || 'draft';
     const visibility = body.visibility || 'public';
 
-    // Create the revision first
+    // Create the page first (without revision references due to FK constraint)
+    await client.query(`
+      INSERT INTO pages (id, slug, title, status, visibility)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [pageId, body.slug, body.title, status, visibility]);
+
+    // Create the revision (now page exists for FK)
     await client.query(`
       INSERT INTO page_revisions (id, page_id, content_md, author_type)
       VALUES ($1, $2, $3, 'human')
     `, [revisionId, pageId, body.content_md]);
 
-    // Create the page with revision reference
+    // Update page with revision references
     const publishedRevId = status === 'published' ? revisionId : null;
     const draftRevId = status === 'draft' ? revisionId : null;
 
     await client.query(`
-      INSERT INTO pages (id, slug, title, status, visibility, current_published_revision_id, current_draft_revision_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [pageId, body.slug, body.title, status, visibility, publishedRevId, draftRevId]);
+      UPDATE pages
+      SET current_published_revision_id = $1, current_draft_revision_id = $2
+      WHERE id = $3
+    `, [publishedRevId, draftRevId, pageId]);
 
     await client.query('COMMIT');
 
