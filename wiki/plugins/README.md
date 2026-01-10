@@ -33,11 +33,6 @@ Native GitHub operations through the `gh` command. Enables PR creation, issue ma
 
 [Learn more →](./github)
 
-### Wiki Ingest
-Content ingestion skill that captures URLs or text into wiki entries. Auto-classifies to appropriate sections and enhances existing entries when relevant.
-
-[Learn more →](./wiki-ingest)
-
 ## Plugin Capabilities Summary
 
 | Plugin | Primary Use Case | Key Features |
@@ -46,7 +41,6 @@ Content ingestion skill that captures URLs or text into wiki entries. Auto-class
 | **Ralph Loop** | Iterative development | Self-correcting loops, autonomous refinement |
 | **Frontend Design** | UI/UX creation | Bold aesthetics, production-grade code |
 | **GitHub CLI** | Repository operations | PRs, issues, code review integration |
-| **Wiki Ingest** | Knowledge capture | Auto-classification, entry enhancement, staging |
 
 ## Integration with Development Skills
 
@@ -65,6 +59,5 @@ Each plugin has specific setup requirements:
 2. **Ralph Loop**: Built-in, available via `/ralph-loop` command
 3. **Frontend Design**: Built-in, available via `/frontend-design` skill
 4. **GitHub CLI**: Requires `gh` CLI installation and authentication
-5. **Wiki Ingest**: Built-in, available via `/wiki-ingest` command
 
 Refer to individual plugin pages for detailed setup and usage instructions.
