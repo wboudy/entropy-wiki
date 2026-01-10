@@ -1,4 +1,5 @@
 {
+  "[...slug]": "[...slug]",
   "beads": "Beads",
   "gastown": "Gastown",
   "skills-bank": "Skills Bank",
@@ -8,5 +9,6 @@
   "context": "Context",
   "lab": "Lab",
   "layout": "Layout",
-  "page": "Page"
+  "not-found": "Not Found",
+  "sitemap": "Sitemap"
 }
