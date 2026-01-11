@@ -362,6 +362,18 @@ railway logs --tail 100
 curl <railway-url>
 ```
 
+### Troubleshooting Guide
+
+For common deployment issues with Vercel + Railway + PostgreSQL, see:
+**[docs/DEPLOYMENT-TROUBLESHOOTING.md](../../../docs/DEPLOYMENT-TROUBLESHOOTING.md)**
+
+Quick reference for:
+- 404 errors (missing database tables, CORS issues)
+- `database_error` responses (migrations not run)
+- CORS blocking requests (trailing slash issues)
+- Admin 500 errors (database connection problems)
+- Environment variable configuration
+
 ## Best Practices
 
 ### Validate Incrementally
