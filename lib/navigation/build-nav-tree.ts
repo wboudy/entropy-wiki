@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import type { SidebarNavItem, NavigationData } from './types'
 
-const DOCS_DIR = path.join(process.cwd(), 'docs')
+const DOCS_DIR = path.join(process.cwd(), 'wiki')
 
 /**
  * Read and parse _meta.json file

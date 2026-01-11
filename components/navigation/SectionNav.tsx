@@ -3,44 +3,48 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
+import type { SidebarNavItem } from '@/lib/navigation/types'
 
-const SECTIONS = [
-  { name: 'Beads', href: '/beads', description: 'Issue tracking & workflows' },
-  { name: 'Gastown', href: '/gastown', description: 'Multi-agent orchestration' },
-  { name: 'Skills Bank', href: '/skills-bank', description: 'Reusable capabilities' },
-  { name: 'Prompt Bank', href: '/prompt-bank', description: 'High-performance prompts' },
-  { name: 'Plugins', href: '/plugins', description: 'Browser automation & tooling' },
-  { name: 'Tooling & MCP', href: '/tooling-mcp', description: 'MCP servers & tools' },
-  { name: 'Orchestration', href: '/orchestration', description: 'Multi-agent handoffs' },
-]
+interface SectionNavProps {
+  sections: SidebarNavItem[]
+}
 
-export function SectionNav() {
+/**
+ * Dynamic section navigation - receives sections from server component
+ */
+export function SectionNav({ sections }: SectionNavProps) {
   const pathname = usePathname()
   const currentSection = pathname?.split('/')[1]
+
+  if (!sections || sections.length === 0) {
+    return null
+  }
 
   return (
     <nav className="border-b bg-muted/30" aria-label="Main sections">
       <div className="container">
-        <div className="flex items-center space-x-1 overflow-x-auto py-2" role="list">
-          {SECTIONS.map((section) => {
-            const sectionSlug = section.href.slice(1)
+        <div
+          className="flex flex-wrap items-center gap-1 py-2"
+          role="list"
+        >
+          {sections.map((section) => {
+            const sectionSlug = section.href?.slice(1) || ''
             const isActive = currentSection === sectionSlug
 
             return (
               <Link
                 key={section.href}
-                href={section.href}
+                href={section.href || '#'}
                 className={cn(
                   "flex flex-col px-3 py-2 rounded text-sm whitespace-nowrap transition-colors",
                   isActive
                     ? "bg-background text-foreground font-medium shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
-                aria-label={`${section.name}: ${section.description}`}
                 aria-current={isActive ? 'page' : undefined}
                 role="listitem"
               >
-                <span>{section.name}</span>
+                <span>{section.title}</span>
               </Link>
             )
           })}
@@ -49,3 +53,4 @@ export function SectionNav() {
     </nav>
   )
 }
+

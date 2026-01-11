@@ -1,13 +1,46 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { Button } from '../ui/button'
-import { siteConfig } from '@/config/site'
 
-export function MobileNav() {
+interface SectionItem {
+  title: string
+  href: string
+}
+
+interface MobileNavProps {
+  sections?: SectionItem[]
+}
+
+// Default sections as fallback when not provided dynamically
+const DEFAULT_SECTIONS: SectionItem[] = [
+  { title: 'Beads', href: '/beads' },
+  { title: 'Gastown', href: '/gastown' },
+  { title: 'Skills Bank', href: '/skills-bank' },
+  { title: 'Prompt Bank', href: '/prompt-bank' },
+  { title: 'Plugins', href: '/plugins' },
+  { title: 'Tooling & MCP', href: '/tooling-mcp' },
+  { title: 'Orchestration', href: '/orchestration' },
+]
+
+/**
+ * Mobile navigation - uses dynamic sections if provided, falls back to defaults
+ */
+export function MobileNav({ sections }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [dynamicSections, setDynamicSections] = useState<SectionItem[]>(sections || DEFAULT_SECTIONS)
+
+  // If no sections passed, try to fetch them from an API endpoint
+  useEffect(() => {
+    if (!sections) {
+      // Use default sections - in future could fetch from API
+      setDynamicSections(DEFAULT_SECTIONS)
+    } else {
+      setDynamicSections(sections)
+    }
+  }, [sections])
 
   return (
     <div className="md:hidden">
@@ -32,48 +65,16 @@ export function MobileNav() {
           aria-label="Mobile navigation"
         >
           <nav className="grid gap-4 text-sm font-medium" aria-label="Mobile sections">
-            <Link
-              href="/beads"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Beads
-            </Link>
-            <Link
-              href="/gastown"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Gastown
-            </Link>
-            <Link
-              href="/skills-bank"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Skills Bank
-            </Link>
-            <Link
-              href="/prompt-bank"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Prompt Bank
-            </Link>
-            <Link
-              href="/plugins"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Plugins
-            </Link>
-            <Link
-              href="/tooling-mcp"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-foreground/80"
-            >
-              Tooling & MCP
-            </Link>
+            {dynamicSections.map((section) => (
+              <Link
+                key={section.href}
+                href={section.href}
+                onClick={() => setIsOpen(false)}
+                className="hover:text-foreground/80"
+              >
+                {section.title}
+              </Link>
+            ))}
           </nav>
         </div>
       )}

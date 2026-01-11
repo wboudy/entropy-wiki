@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
 
-const DOCS_DIR = path.join(__dirname, '..', 'docs');
+const DOCS_DIR = path.join(__dirname, '..', 'wiki');
 const OUTPUT_FILE = path.join(__dirname, '..', 'public', 'search-index.json');
 
 /**
