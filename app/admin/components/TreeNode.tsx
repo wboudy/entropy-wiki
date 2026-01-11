@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import type { PageTreeNode } from '@/lib/api/types'
 
 interface TreeNodeProps {
   node: PageTreeNode
   depth?: number
+  selectedIds: Set<string>
+  onSelect: (id: string, event: React.MouseEvent) => void
   onPublish?: (id: string) => void
   onUnpublish?: (id: string) => void
   onDelete?: (id: string, title: string) => void
@@ -15,25 +17,67 @@ interface TreeNodeProps {
 export function TreeNode({
   node,
   depth = 0,
+  selectedIds,
+  onSelect,
   onPublish,
   onUnpublish,
   onDelete,
 }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 2)
   const hasChildren = node.children && node.children.length > 0
+  const isSelected = selectedIds.has(node.id)
 
-  const toggleExpand = () => {
+  const toggleExpand = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
     if (hasChildren) {
       setIsExpanded(!isExpanded)
     }
-  }
+  }, [hasChildren, isExpanded])
+
+  const handleRowClick = useCallback((e: React.MouseEvent) => {
+    // Don't select if clicking on actions or link
+    if ((e.target as HTMLElement).closest('a, button')) {
+      return
+    }
+    onSelect(node.id, e)
+  }, [node.id, onSelect])
+
+  const handleCheckboxChange = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    onSelect(node.id, e)
+  }, [node.id, onSelect])
 
   return (
     <div className="tree-node">
       <div
-        className="tree-node-row group flex items-center py-1.5 px-2 rounded-md hover:bg-cyan-500/10 transition-colors"
+        className={`tree-node-row group flex items-center py-1.5 px-2 rounded-md transition-colors cursor-pointer ${
+          isSelected
+            ? 'bg-cyan-500/20 border border-cyan-500/40'
+            : 'hover:bg-cyan-500/10 border border-transparent'
+        }`}
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
+        onClick={handleRowClick}
       >
+        {/* Selection Checkbox */}
+        <div
+          className="mr-2 flex items-center justify-center"
+          onClick={handleCheckboxChange}
+        >
+          <div
+            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+              isSelected
+                ? 'bg-cyan-500 border-cyan-500'
+                : 'border-cyan-500/40 hover:border-cyan-500'
+            }`}
+          >
+            {isSelected && (
+              <svg className="w-3 h-3 text-background" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+        </div>
+
         {/* Expand/Collapse Toggle */}
         <button
           onClick={toggleExpand}
@@ -69,6 +113,7 @@ export function TreeNode({
         <Link
           href={`/admin/edit/${node.id}`}
           className="flex-1 font-mono text-sm text-foreground hover:text-cyan-400 transition-colors truncate"
+          onClick={(e) => e.stopPropagation()}
         >
           {node.title}
         </Link>
@@ -102,7 +147,7 @@ export function TreeNode({
         <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
           {node.status === 'draft' ? (
             <button
-              onClick={() => onPublish?.(node.id)}
+              onClick={(e) => { e.stopPropagation(); onPublish?.(node.id) }}
               className="p-1 text-green-400/70 hover:text-green-400 transition-colors"
               title="Publish"
             >
@@ -112,7 +157,7 @@ export function TreeNode({
             </button>
           ) : (
             <button
-              onClick={() => onUnpublish?.(node.id)}
+              onClick={(e) => { e.stopPropagation(); onUnpublish?.(node.id) }}
               className="p-1 text-yellow-400/70 hover:text-yellow-400 transition-colors"
               title="Unpublish"
             >
@@ -122,7 +167,7 @@ export function TreeNode({
             </button>
           )}
           <button
-            onClick={() => onDelete?.(node.id, node.title)}
+            onClick={(e) => { e.stopPropagation(); onDelete?.(node.id, node.title) }}
             className="p-1 text-red-400/70 hover:text-red-400 transition-colors"
             title="Delete"
           >
@@ -141,6 +186,8 @@ export function TreeNode({
               key={child.id}
               node={child}
               depth={depth + 1}
+              selectedIds={selectedIds}
+              onSelect={onSelect}
               onPublish={onPublish}
               onUnpublish={onUnpublish}
               onDelete={onDelete}

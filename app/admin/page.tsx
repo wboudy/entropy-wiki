@@ -140,6 +140,92 @@ export default function AdminDashboard() {
     }
   }
 
+  // Bulk action handlers
+  async function handleBulkPublish(ids: string[]) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: ids, action: 'publish' }),
+      })
+      if (!response.ok) throw new Error('Failed to bulk publish')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to bulk publish')
+    }
+  }
+
+  async function handleBulkUnpublish(ids: string[]) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: ids, action: 'unpublish' }),
+      })
+      if (!response.ok) throw new Error('Failed to bulk unpublish')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to bulk unpublish')
+    }
+  }
+
+  async function handleBulkDelete(ids: string[]) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: ids, action: 'delete' }),
+      })
+      if (!response.ok) throw new Error('Failed to bulk delete')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to bulk delete')
+    }
+  }
+
+  async function handleBulkSetPublic(ids: string[]) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: ids, action: 'set_public' }),
+      })
+      if (!response.ok) throw new Error('Failed to set pages public')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to set pages public')
+    }
+  }
+
+  async function handleBulkSetPrivate(ids: string[]) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: ids, action: 'set_private' }),
+      })
+      if (!response.ok) throw new Error('Failed to set pages private')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to set pages private')
+    }
+  }
+
   // Count total pages in tree
   const countTreePages = (nodes: PageTreeNode[]): number => {
     return nodes.reduce((acc, node) => {
@@ -213,6 +299,11 @@ export default function AdminDashboard() {
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
           onDelete={handleDelete}
+          onBulkPublish={handleBulkPublish}
+          onBulkUnpublish={handleBulkUnpublish}
+          onBulkDelete={handleBulkDelete}
+          onBulkSetPublic={handleBulkSetPublic}
+          onBulkSetPrivate={handleBulkSetPrivate}
           onRefresh={refreshData}
         />
       )}
