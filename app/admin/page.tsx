@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminContext } from './context'
 import { Button } from '@/components/ui/button'
-import { PageTree } from './components/PageTree'
+import { DraggableTree } from './components/DraggableTree'
 import type { Page, PageTreeNode } from '@/lib/api/types'
 
 type ViewMode = 'list' | 'tree'
@@ -226,6 +226,42 @@ export default function AdminDashboard() {
     }
   }
 
+  // Move page to new parent
+  async function handleMove(id: string, parentId: string | null, sortOrder: number) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/${id}/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ parent_id: parentId, sort_order: sortOrder }),
+      })
+      if (!response.ok) throw new Error('Failed to move page')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to move page')
+    }
+  }
+
+  // Reorder pages within parent
+  async function handleReorder(pageIds: string[], parentId: string | null) {
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password,
+        },
+        body: JSON.stringify({ page_ids: pageIds, parent_id: parentId }),
+      })
+      if (!response.ok) throw new Error('Failed to reorder pages')
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to reorder pages')
+    }
+  }
+
   // Count total pages in tree
   const countTreePages = (nodes: PageTreeNode[]): number => {
     return nodes.reduce((acc, node) => {
@@ -293,12 +329,14 @@ export default function AdminDashboard() {
 
       {/* Tree View */}
       {viewMode === 'tree' && (
-        <PageTree
+        <DraggableTree
           tree={tree}
           isLoading={isLoading}
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
           onDelete={handleDelete}
+          onMove={handleMove}
+          onReorder={handleReorder}
           onBulkPublish={handleBulkPublish}
           onBulkUnpublish={handleBulkUnpublish}
           onBulkDelete={handleBulkDelete}
