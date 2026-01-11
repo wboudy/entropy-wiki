@@ -461,4 +461,187 @@ router.delete('/pages/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Types for bulk operations
+interface BulkResult {
+  page_id: string;
+  success: boolean;
+  error?: string;
+}
+
+type BulkAction = 'publish' | 'unpublish' | 'delete' | 'set_public' | 'set_private';
+
+// POST /admin/pages/bulk - Bulk operations on multiple pages
+router.post('/pages/bulk', async (req: Request, res: Response) => {
+  const { page_ids, action } = req.body as { page_ids: string[]; action: BulkAction };
+
+  if (!Array.isArray(page_ids) || page_ids.length === 0) {
+    return res.status(400).json({
+      error: 'validation_error',
+      message: 'page_ids must be a non-empty array'
+    });
+  }
+
+  if (!['publish', 'unpublish', 'delete', 'set_public', 'set_private'].includes(action)) {
+    return res.status(400).json({
+      error: 'validation_error',
+      message: 'action must be one of: publish, unpublish, delete, set_public, set_private'
+    });
+  }
+
+  const results: BulkResult[] = [];
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    for (const page_id of page_ids) {
+      try {
+        // Check page exists
+        const pageResult = await client.query(`
+          SELECT id, current_draft_revision_id, current_published_revision_id
+          FROM pages WHERE id = $1
+        `, [page_id]);
+
+        if (pageResult.rows.length === 0) {
+          results.push({ page_id, success: false, error: 'Page not found' });
+          continue;
+        }
+
+        const page = pageResult.rows[0];
+
+        switch (action) {
+          case 'publish': {
+            const revisionToPublish = page.current_draft_revision_id || page.current_published_revision_id;
+            if (!revisionToPublish) {
+              results.push({ page_id, success: false, error: 'Page has no content to publish' });
+              continue;
+            }
+            await client.query(`
+              UPDATE pages
+              SET status = 'published',
+                  current_published_revision_id = $1,
+                  current_draft_revision_id = NULL
+              WHERE id = $2
+            `, [revisionToPublish, page_id]);
+            results.push({ page_id, success: true });
+            break;
+          }
+
+          case 'unpublish':
+            await client.query(`
+              UPDATE pages
+              SET status = 'draft',
+                  current_draft_revision_id = COALESCE(current_draft_revision_id, current_published_revision_id)
+              WHERE id = $1
+            `, [page_id]);
+            results.push({ page_id, success: true });
+            break;
+
+          case 'delete':
+            await client.query(`DELETE FROM pages WHERE id = $1`, [page_id]);
+            results.push({ page_id, success: true });
+            break;
+
+          case 'set_public':
+            await client.query(`UPDATE pages SET visibility = 'public' WHERE id = $1`, [page_id]);
+            results.push({ page_id, success: true });
+            break;
+
+          case 'set_private':
+            await client.query(`UPDATE pages SET visibility = 'private' WHERE id = $1`, [page_id]);
+            results.push({ page_id, success: true });
+            break;
+        }
+      } catch (err: any) {
+        results.push({ page_id, success: false, error: err.message || 'Unknown error' });
+      }
+    }
+
+    await client.query('COMMIT');
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+
+    res.json({
+      message: `Bulk ${action}: ${successCount} succeeded, ${failCount} failed`,
+      results
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in bulk operation:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to complete bulk operation' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/pages/reorder - Batch update sort_order for siblings
+router.post('/pages/reorder', async (req: Request, res: Response) => {
+  const { parent_id, page_ids } = req.body as { parent_id: string | null; page_ids: string[] };
+
+  if (!Array.isArray(page_ids) || page_ids.length === 0) {
+    return res.status(400).json({
+      error: 'validation_error',
+      message: 'page_ids must be a non-empty array'
+    });
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Validate all pages exist and have the correct parent
+    const existingResult = await client.query(`
+      SELECT id, parent_id FROM pages WHERE id = ANY($1)
+    `, [page_ids]);
+
+    const existingIds = new Set(existingResult.rows.map(r => r.id));
+    const missingIds = page_ids.filter(id => !existingIds.has(id));
+
+    if (missingIds.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'validation_error',
+        message: `Pages not found: ${missingIds.join(', ')}`
+      });
+    }
+
+    // Check all pages have matching parent_id
+    const wrongParent = existingResult.rows.filter(r =>
+      (parent_id === null && r.parent_id !== null) ||
+      (parent_id !== null && r.parent_id !== parent_id)
+    );
+
+    if (wrongParent.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'validation_error',
+        message: 'All pages must have the same parent_id'
+      });
+    }
+
+    // Update sort_order based on array position
+    for (let i = 0; i < page_ids.length; i++) {
+      await client.query(`
+        UPDATE pages SET sort_order = $1 WHERE id = $2
+      `, [i, page_ids[i]]);
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: `Reordered ${page_ids.length} pages`,
+      parent_id,
+      page_ids
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error reordering pages:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to reorder pages' });
+  } finally {
+    client.release();
+  }
+});
+
 export { router as adminRouter };
