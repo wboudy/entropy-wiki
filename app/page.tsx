@@ -4,6 +4,9 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { getDocBySlug } from '@/lib/mdx/get-doc-by-slug'
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { SectionNavServer } from '@/components/navigation/SectionNavServer'
 
 export const metadata = {
   title: 'Entropy Wiki',
@@ -60,33 +63,23 @@ export default async function HomePage() {
   // Try to load wiki/home.md if it exists
   const homeDoc = await getDocBySlug(['home'])
 
-  if (homeDoc) {
-    // Remove the first h1 from content since we display it separately
-    const contentWithoutTitle = homeDoc.content.replace(/^#\s+.+$/m, '').trim()
-
-    return (
-      <main className="container max-w-4xl mx-auto px-4 py-8">
-        <article className="prose prose-slate dark:prose-invert max-w-none">
-          <h1 className="mb-2">{homeDoc.frontMatter.title}</h1>
-          {homeDoc.frontMatter.description && (
-            <p className="text-xl text-muted-foreground mb-8">
-              {homeDoc.frontMatter.description}
-            </p>
-          )}
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeSanitize]}
-          >
-            {contentWithoutTitle}
-          </ReactMarkdown>
-        </article>
-      </main>
-    )
-  }
-
-  // Fallback: render generated homepage
-  return (
-    <main className="container max-w-4xl mx-auto px-4 py-8">
+  const content = homeDoc ? (
+    <>
+      <h1 className="mb-2">{homeDoc.frontMatter.title}</h1>
+      {homeDoc.frontMatter.description && (
+        <p className="text-xl text-muted-foreground mb-8">
+          {homeDoc.frontMatter.description}
+        </p>
+      )}
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
+      >
+        {homeDoc.content.replace(/^#\s+.+$/m, '').trim()}
+      </ReactMarkdown>
+    </>
+  ) : (
+    <>
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Entropy Wiki</h1>
         <p className="text-xl text-muted-foreground">
@@ -106,6 +99,23 @@ export default async function HomePage() {
           </Link>
         ))}
       </div>
-    </main>
+    </>
+  )
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <SectionNavServer />
+
+      <div className="container flex-1">
+        <main className="relative py-6 lg:py-8 max-w-4xl mx-auto">
+          <article className="prose prose-slate dark:prose-invert max-w-none">
+            {content}
+          </article>
+        </main>
+      </div>
+
+      <Footer />
+    </div>
   )
 }
