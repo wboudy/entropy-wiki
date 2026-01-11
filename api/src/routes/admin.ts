@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { query, getClient } from '../db/client.js';
-import { Page, PageWithContent, CreatePageRequest, UpdatePageRequest } from '../types.js';
+import { Page, PageWithContent, PageTreeNode, CreatePageRequest, UpdatePageRequest } from '../types.js';
 
 const router = Router();
 
@@ -30,7 +30,8 @@ router.get('/pages', async (_req: Request, res: Response) => {
     const result = await query<Page>(`
       SELECT id, slug, title, status, visibility,
              current_published_revision_id, current_draft_revision_id,
-             created_at, updated_at
+             created_at, updated_at,
+             parent_id, sort_order, effective_visibility
       FROM pages
       ORDER BY updated_at DESC
     `);
@@ -39,6 +40,78 @@ router.get('/pages', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('Error fetching pages:', err);
     res.status(500).json({ error: 'database_error', message: 'Failed to fetch pages' });
+  }
+});
+
+// GET /admin/pages/tree - Get hierarchical tree of all pages
+router.get('/pages/tree', async (_req: Request, res: Response) => {
+  try {
+    // Fetch all pages with hierarchy fields using recursive CTE for depth
+    const result = await query<Page & { depth: number }>(`
+      WITH RECURSIVE page_tree AS (
+        -- Root pages (no parent)
+        SELECT p.*, 0 as depth
+        FROM pages p
+        WHERE p.parent_id IS NULL
+
+        UNION ALL
+
+        -- Child pages
+        SELECT p.*, pt.depth + 1
+        FROM pages p
+        INNER JOIN page_tree pt ON p.parent_id = pt.id
+      )
+      SELECT id, slug, title, status, visibility,
+             current_published_revision_id, current_draft_revision_id,
+             created_at, updated_at,
+             parent_id, sort_order, effective_visibility, depth
+      FROM page_tree
+      ORDER BY depth, sort_order, title
+    `);
+
+    // Build tree structure
+    const pageMap = new Map<string, PageTreeNode>();
+    const roots: PageTreeNode[] = [];
+
+    // First pass: create all nodes
+    for (const page of result.rows) {
+      const node: PageTreeNode = {
+        ...page,
+        children: [],
+        inherited_visibility: page.effective_visibility !== page.visibility
+      };
+      pageMap.set(page.id, node);
+    }
+
+    // Second pass: build tree relationships
+    for (const page of result.rows) {
+      const node = pageMap.get(page.id)!;
+      if (page.parent_id) {
+        const parent = pageMap.get(page.parent_id);
+        if (parent) {
+          parent.children.push(node);
+        } else {
+          // Parent not found (orphan), treat as root
+          roots.push(node);
+        }
+      } else {
+        roots.push(node);
+      }
+    }
+
+    // Sort children by sort_order then title
+    const sortChildren = (nodes: PageTreeNode[]) => {
+      nodes.sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title));
+      for (const node of nodes) {
+        sortChildren(node.children);
+      }
+    };
+    sortChildren(roots);
+
+    res.json({ tree: roots });
+  } catch (err) {
+    console.error('Error fetching page tree:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to fetch page tree' });
   }
 });
 
@@ -51,7 +124,8 @@ router.get('/pages/:id', async (req: Request, res: Response) => {
     const pageResult = await query<Page>(`
       SELECT id, slug, title, status, visibility,
              current_published_revision_id, current_draft_revision_id,
-             created_at, updated_at
+             created_at, updated_at,
+             parent_id, sort_order, effective_visibility
       FROM pages
       WHERE id = $1
     `, [id]);
@@ -213,6 +287,94 @@ router.patch('/pages/:id', async (req: Request, res: Response) => {
     await client.query('ROLLBACK');
     console.error('Error updating page:', err);
     res.status(500).json({ error: 'database_error', message: 'Failed to update page' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/pages/:id/move - Move page to new parent with sort_order
+router.post('/pages/:id/move', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { parent_id, sort_order } = req.body as { parent_id: string | null; sort_order?: number };
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check page exists
+    const pageResult = await client.query(`
+      SELECT id FROM pages WHERE id = $1
+    `, [id]);
+
+    if (pageResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'not_found', message: 'Page not found' });
+    }
+
+    // If parent_id specified, validate it exists and check for circular reference
+    if (parent_id) {
+      const parentResult = await client.query(`
+        SELECT id FROM pages WHERE id = $1
+      `, [parent_id]);
+
+      if (parentResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'invalid_parent', message: 'Parent page not found' });
+      }
+
+      // Cannot set parent to self
+      if (parent_id === id) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'circular_reference', message: 'Cannot set page as its own parent' });
+      }
+
+      // Check for circular reference (parent cannot be a descendant of this page)
+      const circularCheck = await client.query(`
+        WITH RECURSIVE ancestors AS (
+          SELECT id, parent_id FROM pages WHERE id = $1
+          UNION ALL
+          SELECT p.id, p.parent_id FROM pages p
+          INNER JOIN ancestors a ON p.id = a.parent_id
+        )
+        SELECT 1 FROM ancestors WHERE id = $2
+      `, [parent_id, id]);
+
+      if (circularCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: 'circular_reference',
+          message: 'Cannot move page under its own descendant'
+        });
+      }
+    }
+
+    // Calculate sort_order if not provided
+    let finalSortOrder = sort_order;
+    if (finalSortOrder === undefined) {
+      const maxSortResult = await client.query(`
+        SELECT COALESCE(MAX(sort_order), -1) + 1 as next_sort
+        FROM pages WHERE parent_id IS NOT DISTINCT FROM $1
+      `, [parent_id]);
+      finalSortOrder = maxSortResult.rows[0].next_sort;
+    }
+
+    // Update the page
+    await client.query(`
+      UPDATE pages SET parent_id = $1, sort_order = $2 WHERE id = $3
+    `, [parent_id, finalSortOrder, id]);
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: 'Page moved successfully',
+      parent_id,
+      sort_order: finalSortOrder
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error moving page:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to move page' });
   } finally {
     client.release();
   }
