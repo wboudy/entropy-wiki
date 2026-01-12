@@ -10,9 +10,10 @@ import { getAllDocs } from '@/lib/mdx/get-all-docs'
 import { buildSectionNavTree } from '@/lib/navigation/build-nav-tree'
 import type { MDXDocument } from '@/lib/mdx/types'
 
-// Use ISR with 60 second revalidation for fresh content
-// This allows static generation while still checking API for updates
-export const revalidate = 60
+// Disable ISR revalidation - use pure static generation
+// The wiki folder is not available in the serverless function bundle
+// so runtime revalidation fails. Use rebuild to update content.
+export const revalidate = false
 
 interface DocPageProps {
   params: Promise<{
