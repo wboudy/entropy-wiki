@@ -54,6 +54,48 @@ app.get('/health/db', async (_req: Request, res: Response) => {
   }
 });
 
+// Migration endpoint (protected by admin password)
+import { readFileSync, readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+app.post('/admin/migrate', async (req: Request, res: Response) => {
+  const password = req.headers['x-admin-password'] as string;
+  if (!password || password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  try {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const migrationsDir = join(__dirname, 'db', 'migrations');
+    const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+    const results: string[] = [];
+
+    for (const file of files) {
+      const migrationName = file.replace('.sql', '');
+
+      // Check if already applied
+      try {
+        const check = await query('SELECT 1 FROM _migrations WHERE name = $1', [migrationName]);
+        if (check.rows.length > 0) {
+          results.push(`Skipped ${migrationName} (already applied)`);
+          continue;
+        }
+      } catch (err: any) {
+        if (err.code !== '42P01') throw err; // Table doesn't exist yet
+      }
+
+      const sql = readFileSync(join(migrationsDir, file), 'utf-8');
+      await query(sql);
+      results.push(`Applied ${migrationName}`);
+    }
+
+    res.json({ status: 'ok', migrations: results });
+  } catch (err: any) {
+    res.status(500).json({ error: 'migration_failed', message: err.message });
+  }
+});
+
 // Public routes
 app.use('/pages', pagesRouter);
 
