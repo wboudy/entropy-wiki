@@ -176,8 +176,8 @@ railway login
 railway link -p diplomatic-surprise -s Postgres
 
 # 4. Get the public DATABASE_URL
-railway variables --json | grep DATABASE_PUBLIC_URL
-# Output: "DATABASE_PUBLIC_URL": "postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:PORT/railway"
+railway variables --json | jq -r '.DATABASE_PUBLIC_URL'
+# Output: postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:PORT/railway
 ```
 
 **Run Migrations with Public URL**:
@@ -263,8 +263,8 @@ railway up
 # Link to Postgres service first
 railway link -p diplomatic-surprise -s Postgres
 
-# Get public URL
-railway variables --json | grep DATABASE_PUBLIC_URL
+# Get public URL (install jq: brew install jq)
+railway variables --json | jq -r '.DATABASE_PUBLIC_URL'
 
 # Run migrations (from api/ directory)
 DATABASE_URL="postgresql://..." npm run db:migrate
@@ -285,7 +285,7 @@ DATABASE_URL="postgresql://..." npm run db:seed
 
 ### Railway PostgreSQL
 - [ ] Database running
-- [ ] Get public DATABASE_URL: `railway link -p diplomatic-surprise -s Postgres && railway variables --json | grep DATABASE_PUBLIC_URL`
+- [ ] Get public DATABASE_URL: `railway link -p diplomatic-surprise -s Postgres && railway variables --json | jq -r '.DATABASE_PUBLIC_URL'`
 - [ ] Run migrations: `DATABASE_URL="postgresql://..." npm run db:migrate`
 - [ ] Verify both migrations applied: `001_initial` and `002_hierarchy`
 - [ ] Data seeded: `DATABASE_URL="postgresql://..." npm run db:seed`
