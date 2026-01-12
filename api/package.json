@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:seed": "tsx scripts/migrate-markdown-to-db.ts"
+    "db:seed": "tsx scripts/migrate-markdown-to-db.ts",
+    "db:sync": "tsx scripts/sync-wiki-db.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

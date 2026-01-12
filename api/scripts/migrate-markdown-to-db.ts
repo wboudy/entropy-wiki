@@ -150,8 +150,8 @@ async function migratePages(pages: PageData[]): Promise<void> {
 
       // Create page first (without revision reference)
       await client.query(
-        `INSERT INTO pages (id, slug, title, status, visibility)
-         VALUES ($1, $2, $3, 'published', 'public')`,
+        `INSERT INTO pages (id, slug, title, status)
+         VALUES ($1, $2, $3, 'published')`,
         [pageId, page.slug, page.title]
       );
 
