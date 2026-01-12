@@ -115,6 +115,40 @@ router.get('/pages/tree', async (_req: Request, res: Response) => {
   }
 });
 
+// GET /admin/pages/:id/descendants - Get all descendants of a page (for cascade preview)
+router.get('/pages/:id/descendants', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // Get all descendant pages using recursive CTE (excludes the root page itself)
+    const result = await query<{ id: string; title: string; slug: string; status: string }>(`
+      WITH RECURSIVE descendants AS (
+        -- Direct children of the target page
+        SELECT id, title, slug, status, 1 as depth
+        FROM pages WHERE parent_id = $1
+
+        UNION ALL
+
+        -- Grandchildren and deeper
+        SELECT p.id, p.title, p.slug, p.status, d.depth + 1
+        FROM pages p
+        INNER JOIN descendants d ON p.parent_id = d.id
+      )
+      SELECT id, title, slug, status, depth
+      FROM descendants
+      ORDER BY depth, title
+    `, [id]);
+
+    res.json({
+      descendants: result.rows,
+      count: result.rows.length
+    });
+  } catch (err) {
+    console.error('Error fetching descendants:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to fetch descendants' });
+  }
+});
+
 // GET /admin/pages/:id - Get a single page with content (draft if exists, else published)
 router.get('/pages/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -415,27 +449,59 @@ router.post('/pages/:id/publish', async (req: Request, res: Response) => {
   }
 });
 
-// POST /admin/pages/:id/unpublish - Unpublish a page (move to draft)
+// POST /admin/pages/:id/unpublish - Unpublish a page and all descendants (cascade)
 router.post('/pages/:id/unpublish', async (req: Request, res: Response) => {
   const { id } = req.params;
 
+  const client = await getClient();
+
   try {
-    const result = await query(`
-      UPDATE pages
-      SET status = 'draft',
-          current_draft_revision_id = COALESCE(current_draft_revision_id, current_published_revision_id)
-      WHERE id = $1
-      RETURNING id
+    await client.query('BEGIN');
+
+    // Get all descendant pages including the root page using recursive CTE
+    const descendantsResult = await client.query(`
+      WITH RECURSIVE descendants AS (
+        -- Root page
+        SELECT id, title FROM pages WHERE id = $1
+
+        UNION ALL
+
+        -- Child pages recursively
+        SELECT p.id, p.title FROM pages p
+        INNER JOIN descendants d ON p.parent_id = d.id
+      )
+      SELECT id, title FROM descendants
     `, [id]);
 
-    if (result.rowCount === 0) {
+    if (descendantsResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'not_found', message: 'Page not found' });
     }
 
-    res.json({ message: 'Page unpublished successfully' });
+    // Unpublish all descendants
+    const pageIds = descendantsResult.rows.map(r => r.id);
+    const affectedPages = descendantsResult.rows.map(r => ({ id: r.id, title: r.title }));
+
+    const updateResult = await client.query(`
+      UPDATE pages
+      SET status = 'draft',
+          current_draft_revision_id = COALESCE(current_draft_revision_id, current_published_revision_id)
+      WHERE id = ANY($1)
+    `, [pageIds]);
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: `Page unpublished: ${updateResult.rowCount} page(s) moved to draft`,
+      unpublished_count: updateResult.rowCount,
+      affected_pages: affectedPages
+    });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error unpublishing page:', err);
     res.status(500).json({ error: 'database_error', message: 'Failed to unpublish page' });
+  } finally {
+    client.release();
   }
 });
 
