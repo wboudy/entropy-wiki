@@ -129,20 +129,6 @@ export function TreeNode({
           {node.status === 'published' ? 'PUB' : 'DFT'}
         </span>
 
-        {/* Visibility Badge */}
-        <span
-          className={`ml-1.5 px-1.5 py-0.5 rounded text-xs font-mono ${
-            node.effective_visibility === 'private'
-              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-              : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-          }`}
-        >
-          {node.effective_visibility === 'private' ? 'PRIV' : 'PUB'}
-          {node.inherited_visibility && (
-            <span className="ml-0.5 opacity-60" title="Inherited from parent">*</span>
-          )}
-        </span>
-
         {/* Actions (visible on hover) */}
         <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
           {node.status === 'draft' ? (

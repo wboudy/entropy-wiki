@@ -6,7 +6,6 @@ export interface Page {
   slug: string;
   title: string;
   status: 'draft' | 'published';
-  visibility: 'public' | 'private';
   current_published_revision_id: string | null;
   current_draft_revision_id: string | null;
   created_at: string;
@@ -14,7 +13,6 @@ export interface Page {
   // Hierarchy fields
   parent_id: string | null;
   sort_order: number;
-  effective_visibility: 'public' | 'private';
 }
 
 export interface PageRevision {
@@ -35,13 +33,12 @@ export interface CreatePageRequest {
   title: string;
   content_md: string;
   status?: 'draft' | 'published';
-  visibility?: 'public' | 'private';
 }
 
 export interface UpdatePageRequest {
   title?: string;
   content_md?: string;
-  visibility?: 'public' | 'private';
+  status?: 'draft' | 'published';
 }
 
 export interface ApiError {
@@ -53,7 +50,7 @@ export interface ApiError {
 export interface PageTreeNode extends Page {
   children: PageTreeNode[];
   depth: number;
-  inherited_visibility: boolean; // true if effective_visibility differs from visibility
+  inherited_visibility?: boolean; // Deprecated, kept for API compat
 }
 
 // API Response wrappers

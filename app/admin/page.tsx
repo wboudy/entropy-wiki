@@ -192,40 +192,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleBulkSetPublic(ids: string[]) {
-    try {
-      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': password,
-        },
-        body: JSON.stringify({ page_ids: ids, action: 'set_public' }),
-      })
-      if (!response.ok) throw new Error('Failed to set pages public')
-      refreshData()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to set pages public')
-    }
-  }
-
-  async function handleBulkSetPrivate(ids: string[]) {
-    try {
-      const response = await fetch(`${apiUrl}/admin/pages/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': password,
-        },
-        body: JSON.stringify({ page_ids: ids, action: 'set_private' }),
-      })
-      if (!response.ok) throw new Error('Failed to set pages private')
-      refreshData()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to set pages private')
-    }
-  }
-
   // Move page to new parent
   async function handleMove(id: string, parentId: string | null, sortOrder: number) {
     try {
@@ -275,23 +241,6 @@ export default function AdminDashboard() {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Failed to update title' }))
       throw new Error(error.message || 'Failed to update title')
-    }
-    refreshData()
-  }
-
-  // Update page visibility
-  async function handleUpdateVisibility(pageId: string, visibility: 'public' | 'private') {
-    const response = await fetch(`${apiUrl}/admin/pages/${pageId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Password': password,
-      },
-      body: JSON.stringify({ visibility }),
-    })
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to update visibility' }))
-      throw new Error(error.message || 'Failed to update visibility')
     }
     refreshData()
   }
@@ -374,11 +323,8 @@ export default function AdminDashboard() {
           onBulkPublish={handleBulkPublish}
           onBulkUnpublish={handleBulkUnpublish}
           onBulkDelete={handleBulkDelete}
-          onBulkSetPublic={handleBulkSetPublic}
-          onBulkSetPrivate={handleBulkSetPrivate}
           onRefresh={refreshData}
           onUpdateTitle={handleUpdateTitle}
-          onUpdateVisibility={handleUpdateVisibility}
         />
       )}
 
@@ -391,7 +337,6 @@ export default function AdminDashboard() {
                 <th className="text-left px-4 py-3 font-medium">Title</th>
                 <th className="text-left px-4 py-3 font-medium">Slug</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-left px-4 py-3 font-medium">Visibility</th>
                 <th className="text-left px-4 py-3 font-medium">Updated</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
@@ -419,17 +364,6 @@ export default function AdminDashboard() {
                       }`}
                     >
                       {page.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        page.visibility === 'public'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                      }`}
-                    >
-                      {page.visibility}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-sm">
@@ -471,7 +405,7 @@ export default function AdminDashboard() {
 
               {pages.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No pages yet. Create your first page to get started.
                   </td>
                 </tr>

@@ -14,8 +14,6 @@ interface PageTreeProps {
   onBulkPublish?: (ids: string[]) => Promise<void>
   onBulkUnpublish?: (ids: string[]) => Promise<void>
   onBulkDelete?: (ids: string[]) => Promise<void>
-  onBulkSetPublic?: (ids: string[]) => Promise<void>
-  onBulkSetPrivate?: (ids: string[]) => Promise<void>
   onRefresh?: () => void
 }
 
@@ -28,8 +26,6 @@ export function PageTree({
   onBulkPublish,
   onBulkUnpublish,
   onBulkDelete,
-  onBulkSetPublic,
-  onBulkSetPrivate,
   onRefresh,
 }: PageTreeProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -136,30 +132,6 @@ export function PageTree({
     }
   }, [onBulkDelete, selectedIds, clearSelection])
 
-  const handleBulkSetPublic = useCallback(async () => {
-    if (onBulkSetPublic && selectedIds.size > 0) {
-      setIsBulkLoading(true)
-      try {
-        await onBulkSetPublic(Array.from(selectedIds))
-        clearSelection()
-      } finally {
-        setIsBulkLoading(false)
-      }
-    }
-  }, [onBulkSetPublic, selectedIds, clearSelection])
-
-  const handleBulkSetPrivate = useCallback(async () => {
-    if (onBulkSetPrivate && selectedIds.size > 0) {
-      setIsBulkLoading(true)
-      try {
-        await onBulkSetPrivate(Array.from(selectedIds))
-        clearSelection()
-      } finally {
-        setIsBulkLoading(false)
-      }
-    }
-  }, [onBulkSetPrivate, selectedIds, clearSelection])
-
   // Count total pages recursively
   const countPages = (nodes: PageTreeNode[]): number => {
     return nodes.reduce((acc, node) => {
@@ -193,8 +165,6 @@ export function PageTree({
         onPublish={handleBulkPublish}
         onUnpublish={handleBulkUnpublish}
         onDelete={handleBulkDelete}
-        onSetPublic={handleBulkSetPublic}
-        onSetPrivate={handleBulkSetPrivate}
         onClearSelection={clearSelection}
         isLoading={isBulkLoading}
       />
@@ -276,17 +246,6 @@ export function PageTree({
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-yellow-400/60"></span>
               Draft
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-cyan-400/60"></span>
-              Public
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-400/60"></span>
-              Private
-            </span>
-            <span className="flex items-center gap-1">
-              * = inherited
             </span>
             <span className="ml-auto text-cyan-500/30">
               Shift+click for range, Cmd/Ctrl+click for multi-select

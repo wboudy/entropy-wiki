@@ -33,11 +33,8 @@ interface DraggableTreeProps {
   onBulkPublish?: (ids: string[]) => Promise<void>
   onBulkUnpublish?: (ids: string[]) => Promise<void>
   onBulkDelete?: (ids: string[]) => Promise<void>
-  onBulkSetPublic?: (ids: string[]) => Promise<void>
-  onBulkSetPrivate?: (ids: string[]) => Promise<void>
   onRefresh?: () => void
   onUpdateTitle?: (id: string, title: string) => Promise<void>
-  onUpdateVisibility?: (id: string, visibility: 'public' | 'private') => Promise<void>
 }
 
 export function DraggableTree({
@@ -51,11 +48,8 @@ export function DraggableTree({
   onBulkPublish,
   onBulkUnpublish,
   onBulkDelete,
-  onBulkSetPublic,
-  onBulkSetPrivate,
   onRefresh,
   onUpdateTitle,
-  onUpdateVisibility,
 }: DraggableTreeProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -219,30 +213,6 @@ export function DraggableTree({
     }
   }, [onBulkDelete, selectedIds, clearSelection])
 
-  const handleBulkSetPublic = useCallback(async () => {
-    if (onBulkSetPublic && selectedIds.size > 0) {
-      setIsBulkLoading(true)
-      try {
-        await onBulkSetPublic(Array.from(selectedIds))
-        clearSelection()
-      } finally {
-        setIsBulkLoading(false)
-      }
-    }
-  }, [onBulkSetPublic, selectedIds, clearSelection])
-
-  const handleBulkSetPrivate = useCallback(async () => {
-    if (onBulkSetPrivate && selectedIds.size > 0) {
-      setIsBulkLoading(true)
-      try {
-        await onBulkSetPrivate(Array.from(selectedIds))
-        clearSelection()
-      } finally {
-        setIsBulkLoading(false)
-      }
-    }
-  }, [onBulkSetPrivate, selectedIds, clearSelection])
-
   const activeNode = activeId ? findNode(activeId) : null
   const totalPages = flatNodes.length
 
@@ -269,8 +239,6 @@ export function DraggableTree({
         onPublish={handleBulkPublish}
         onUnpublish={handleBulkUnpublish}
         onDelete={handleBulkDelete}
-        onSetPublic={handleBulkSetPublic}
-        onSetPrivate={handleBulkSetPrivate}
         onClearSelection={clearSelection}
         isLoading={isBulkLoading}
       />
@@ -316,7 +284,6 @@ export function DraggableTree({
                     onUnpublish={onUnpublish}
                     onDelete={onDelete}
                     onUpdateTitle={onUpdateTitle}
-                    onUpdateVisibility={onUpdateVisibility}
                   />
                 ))}
               </SortableContext>

@@ -24,14 +24,14 @@ function authMiddleware(req: Request, res: Response, next: NextFunction) {
 // Apply auth to all admin routes
 router.use(authMiddleware);
 
-// GET /admin/pages - List all pages (including drafts and private)
+// GET /admin/pages - List all pages (including drafts)
 router.get('/pages', async (_req: Request, res: Response) => {
   try {
     const result = await query<Page>(`
-      SELECT id, slug, title, status, visibility,
+      SELECT id, slug, title, status,
              current_published_revision_id, current_draft_revision_id,
              created_at, updated_at,
-             parent_id, sort_order, effective_visibility
+             parent_id, sort_order
       FROM pages
       ORDER BY updated_at DESC
     `);
@@ -61,10 +61,10 @@ router.get('/pages/tree', async (_req: Request, res: Response) => {
         FROM pages p
         INNER JOIN page_tree pt ON p.parent_id = pt.id
       )
-      SELECT id, slug, title, status, visibility,
+      SELECT id, slug, title, status,
              current_published_revision_id, current_draft_revision_id,
              created_at, updated_at,
-             parent_id, sort_order, effective_visibility, depth
+             parent_id, sort_order, depth
       FROM page_tree
       ORDER BY depth, sort_order, title
     `);
@@ -78,7 +78,7 @@ router.get('/pages/tree', async (_req: Request, res: Response) => {
       const node: PageTreeNode = {
         ...page,
         children: [],
-        inherited_visibility: page.effective_visibility !== page.visibility
+        inherited_visibility: false  // No longer used, kept for API compat
       };
       pageMap.set(page.id, node);
     }
@@ -122,10 +122,10 @@ router.get('/pages/:id', async (req: Request, res: Response) => {
   try {
     // First get the page
     const pageResult = await query<Page>(`
-      SELECT id, slug, title, status, visibility,
+      SELECT id, slug, title, status,
              current_published_revision_id, current_draft_revision_id,
              created_at, updated_at,
-             parent_id, sort_order, effective_visibility
+             parent_id, sort_order
       FROM pages
       WHERE id = $1
     `, [id]);
@@ -176,13 +176,12 @@ router.post('/pages', async (req: Request, res: Response) => {
     const pageId = uuidv4();
     const revisionId = uuidv4();
     const status = body.status || 'draft';
-    const visibility = body.visibility || 'public';
 
     // Create the page first (without revision references due to FK constraint)
     await client.query(`
-      INSERT INTO pages (id, slug, title, status, visibility)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [pageId, body.slug, body.title, status, visibility]);
+      INSERT INTO pages (id, slug, title, status)
+      VALUES ($1, $2, $3, $4)
+    `, [pageId, body.slug, body.title, status]);
 
     // Create the revision (now page exists for FK)
     await client.query(`
@@ -208,7 +207,6 @@ router.post('/pages', async (req: Request, res: Response) => {
         slug: body.slug,
         title: body.title,
         status,
-        visibility,
         current_published_revision_id: publishedRevId,
         current_draft_revision_id: draftRevId,
         content_md: body.content_md
@@ -240,7 +238,7 @@ router.patch('/pages/:id', async (req: Request, res: Response) => {
 
     // Check page exists
     const existingResult = await client.query(`
-      SELECT id, slug, title, visibility, current_draft_revision_id, current_published_revision_id
+      SELECT id, slug, title, status, current_draft_revision_id, current_published_revision_id
       FROM pages WHERE id = $1
     `, [id]);
 
@@ -263,13 +261,13 @@ router.patch('/pages/:id', async (req: Request, res: Response) => {
 
     // Update page metadata
     const title = body.title ?? existing.title;
-    const visibility = body.visibility ?? existing.visibility;
+    const status = body.status ?? existing.status;
 
     await client.query(`
       UPDATE pages
-      SET title = $1, visibility = $2, current_draft_revision_id = $3
+      SET title = $1, status = $2, current_draft_revision_id = $3
       WHERE id = $4
-    `, [title, visibility, newDraftRevisionId, id]);
+    `, [title, status, newDraftRevisionId, id]);
 
     await client.query('COMMIT');
 
@@ -279,7 +277,7 @@ router.patch('/pages/:id', async (req: Request, res: Response) => {
         id,
         slug: existing.slug,
         title,
-        visibility,
+        status,
         current_draft_revision_id: newDraftRevisionId
       }
     });
@@ -468,7 +466,7 @@ interface BulkResult {
   error?: string;
 }
 
-type BulkAction = 'publish' | 'unpublish' | 'delete' | 'set_public' | 'set_private';
+type BulkAction = 'publish' | 'unpublish' | 'delete';
 
 // POST /admin/pages/bulk - Bulk operations on multiple pages
 router.post('/pages/bulk', async (req: Request, res: Response) => {
@@ -481,10 +479,10 @@ router.post('/pages/bulk', async (req: Request, res: Response) => {
     });
   }
 
-  if (!['publish', 'unpublish', 'delete', 'set_public', 'set_private'].includes(action)) {
+  if (!['publish', 'unpublish', 'delete'].includes(action)) {
     return res.status(400).json({
       error: 'validation_error',
-      message: 'action must be one of: publish, unpublish, delete, set_public, set_private'
+      message: 'action must be one of: publish, unpublish, delete'
     });
   }
 
@@ -539,16 +537,6 @@ router.post('/pages/bulk', async (req: Request, res: Response) => {
 
           case 'delete':
             await client.query(`DELETE FROM pages WHERE id = $1`, [page_id]);
-            results.push({ page_id, success: true });
-            break;
-
-          case 'set_public':
-            await client.query(`UPDATE pages SET visibility = 'public' WHERE id = $1`, [page_id]);
-            results.push({ page_id, success: true });
-            break;
-
-          case 'set_private':
-            await client.query(`UPDATE pages SET visibility = 'private' WHERE id = $1`, [page_id]);
             results.push({ page_id, success: true });
             break;
         }

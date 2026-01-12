@@ -7,8 +7,6 @@ interface TreeControlsProps {
   onPublish: () => void
   onUnpublish: () => void
   onDelete: () => void
-  onSetPublic: () => void
-  onSetPrivate: () => void
   onClearSelection: () => void
   isLoading?: boolean
 }
@@ -18,8 +16,6 @@ export function TreeControls({
   onPublish,
   onUnpublish,
   onDelete,
-  onSetPublic,
-  onSetPrivate,
   onClearSelection,
   isLoading = false,
 }: TreeControlsProps) {
@@ -59,25 +55,6 @@ export function TreeControls({
           className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
         >
           Unpublish
-        </Button>
-        <div className="w-px h-6 bg-cyan-500/30" />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSetPublic}
-          disabled={isLoading}
-          className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-        >
-          Set Public
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSetPrivate}
-          disabled={isLoading}
-          className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-        >
-          Set Private
         </Button>
         <div className="w-px h-6 bg-cyan-500/30" />
         <Button
