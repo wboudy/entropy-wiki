@@ -1,0 +1,6 @@
+# Ignore beads directory (git-backed issue tracker, not needed for build)
+.beads/
+
+# Ignore local config files
+*.local.md
+*.sock
