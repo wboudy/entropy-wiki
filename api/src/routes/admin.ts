@@ -439,6 +439,131 @@ router.post('/pages/:id/unpublish', async (req: Request, res: Response) => {
   }
 });
 
+// POST /admin/pages/:id/publish-section - Publish a page and all its descendants
+router.post('/pages/:id/publish-section', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get all descendant pages including the root page using recursive CTE
+    const descendantsResult = await client.query(`
+      WITH RECURSIVE descendants AS (
+        -- Root page
+        SELECT id, current_draft_revision_id, current_published_revision_id
+        FROM pages WHERE id = $1
+
+        UNION ALL
+
+        -- Child pages recursively
+        SELECT p.id, p.current_draft_revision_id, p.current_published_revision_id
+        FROM pages p
+        INNER JOIN descendants d ON p.parent_id = d.id
+      )
+      SELECT id, current_draft_revision_id, current_published_revision_id
+      FROM descendants
+    `, [id]);
+
+    if (descendantsResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'not_found', message: 'Page not found' });
+    }
+
+    // Publish each page that has content
+    let publishedCount = 0;
+    let skippedCount = 0;
+
+    for (const page of descendantsResult.rows) {
+      const revisionToPublish = page.current_draft_revision_id || page.current_published_revision_id;
+
+      if (!revisionToPublish) {
+        skippedCount++;
+        continue;
+      }
+
+      await client.query(`
+        UPDATE pages
+        SET status = 'published',
+            current_published_revision_id = $1,
+            current_draft_revision_id = NULL
+        WHERE id = $2
+      `, [revisionToPublish, page.id]);
+
+      publishedCount++;
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: `Section published: ${publishedCount} pages published, ${skippedCount} skipped (no content)`,
+      published_count: publishedCount,
+      skipped_count: skippedCount
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error publishing section:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to publish section' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/pages/:id/unpublish-section - Unpublish a page and all its descendants
+router.post('/pages/:id/unpublish-section', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get all descendant pages including the root page using recursive CTE
+    const descendantsResult = await client.query(`
+      WITH RECURSIVE descendants AS (
+        -- Root page
+        SELECT id FROM pages WHERE id = $1
+
+        UNION ALL
+
+        -- Child pages recursively
+        SELECT p.id FROM pages p
+        INNER JOIN descendants d ON p.parent_id = d.id
+      )
+      SELECT id FROM descendants
+    `, [id]);
+
+    if (descendantsResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'not_found', message: 'Page not found' });
+    }
+
+    // Unpublish all descendants
+    const pageIds = descendantsResult.rows.map(r => r.id);
+
+    const updateResult = await client.query(`
+      UPDATE pages
+      SET status = 'draft',
+          current_draft_revision_id = COALESCE(current_draft_revision_id, current_published_revision_id)
+      WHERE id = ANY($1)
+    `, [pageIds]);
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: `Section unpublished: ${updateResult.rowCount} pages moved to draft`,
+      unpublished_count: updateResult.rowCount
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error unpublishing section:', err);
+    res.status(500).json({ error: 'database_error', message: 'Failed to unpublish section' });
+  } finally {
+    client.release();
+  }
+});
+
 // DELETE /admin/pages/:id - Delete a page
 router.delete('/pages/:id', async (req: Request, res: Response) => {
   const { id } = req.params;

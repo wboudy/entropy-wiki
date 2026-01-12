@@ -10,6 +10,8 @@ interface PageTreeProps {
   isLoading?: boolean
   onPublish?: (id: string) => void
   onUnpublish?: (id: string) => void
+  onPublishSection?: (id: string, title: string) => void
+  onUnpublishSection?: (id: string, title: string) => void
   onDelete?: (id: string, title: string) => void
   onBulkPublish?: (ids: string[]) => Promise<void>
   onBulkUnpublish?: (ids: string[]) => Promise<void>
@@ -22,6 +24,8 @@ export function PageTree({
   isLoading = false,
   onPublish,
   onUnpublish,
+  onPublishSection,
+  onUnpublishSection,
   onDelete,
   onBulkPublish,
   onBulkUnpublish,
@@ -229,6 +233,8 @@ export function PageTree({
                   onSelect={handleSelect}
                   onPublish={onPublish}
                   onUnpublish={onUnpublish}
+                  onPublishSection={onPublishSection}
+                  onUnpublishSection={onUnpublishSection}
                   onDelete={onDelete}
                 />
               ))}

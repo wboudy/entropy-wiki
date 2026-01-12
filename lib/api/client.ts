@@ -160,6 +160,29 @@ class ApiClient {
     });
   }
 
+  // Publish a section (page and all descendants)
+  async publishSection(id: string): Promise<{ published_count: number; skipped_count: number }> {
+    const response = await this.fetchWithAuth<{
+      message: string;
+      published_count: number;
+      skipped_count: number;
+    }>(`/admin/pages/${id}/publish-section`, {
+      method: 'POST',
+    });
+    return { published_count: response.published_count, skipped_count: response.skipped_count };
+  }
+
+  // Unpublish a section (page and all descendants)
+  async unpublishSection(id: string): Promise<{ unpublished_count: number }> {
+    const response = await this.fetchWithAuth<{
+      message: string;
+      unpublished_count: number;
+    }>(`/admin/pages/${id}/unpublish-section`, {
+      method: 'POST',
+    });
+    return { unpublished_count: response.unpublished_count };
+  }
+
   // Delete a page
   async deletePage(id: string): Promise<void> {
     await this.fetchWithAuth<{ message: string }>(`/admin/pages/${id}`, {

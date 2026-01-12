@@ -27,6 +27,8 @@ interface DraggableTreeProps {
   isLoading?: boolean
   onPublish?: (id: string) => void
   onUnpublish?: (id: string) => void
+  onPublishSection?: (id: string, title: string) => void
+  onUnpublishSection?: (id: string, title: string) => void
   onDelete?: (id: string, title: string) => void
   onMove?: (id: string, parentId: string | null, sortOrder: number) => Promise<void>
   onReorder?: (pageIds: string[], parentId: string | null) => Promise<void>
@@ -42,6 +44,8 @@ export function DraggableTree({
   isLoading = false,
   onPublish,
   onUnpublish,
+  onPublishSection,
+  onUnpublishSection,
   onDelete,
   onMove,
   onReorder,
@@ -282,6 +286,8 @@ export function DraggableTree({
                     onSelect={handleSelect}
                     onPublish={onPublish}
                     onUnpublish={onUnpublish}
+                    onPublishSection={onPublishSection}
+                    onUnpublishSection={onUnpublishSection}
                     onDelete={onDelete}
                     onUpdateTitle={onUpdateTitle}
                   />

@@ -11,6 +11,8 @@ interface TreeNodeProps {
   onSelect: (id: string, event: React.MouseEvent) => void
   onPublish?: (id: string) => void
   onUnpublish?: (id: string) => void
+  onPublishSection?: (id: string, title: string) => void
+  onUnpublishSection?: (id: string, title: string) => void
   onDelete?: (id: string, title: string) => void
 }
 
@@ -21,6 +23,8 @@ export function TreeNode({
   onSelect,
   onPublish,
   onUnpublish,
+  onPublishSection,
+  onUnpublishSection,
   onDelete,
 }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 2)
@@ -131,11 +135,12 @@ export function TreeNode({
 
         {/* Actions (visible on hover) */}
         <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          {/* Single page publish/unpublish */}
           {node.status === 'draft' ? (
             <button
               onClick={(e) => { e.stopPropagation(); onPublish?.(node.id) }}
               className="p-1 text-green-400/70 hover:text-green-400 transition-colors"
-              title="Publish"
+              title="Publish page"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -145,13 +150,38 @@ export function TreeNode({
             <button
               onClick={(e) => { e.stopPropagation(); onUnpublish?.(node.id) }}
               className="p-1 text-yellow-400/70 hover:text-yellow-400 transition-colors"
-              title="Unpublish"
+              title="Unpublish page"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </button>
           )}
+
+          {/* Section publish/unpublish (only for nodes with children) */}
+          {hasChildren && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onPublishSection?.(node.id, node.title) }}
+                className="p-1 text-cyan-400/70 hover:text-cyan-400 transition-colors"
+                title="Publish section (all children)"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onUnpublishSection?.(node.id, node.title) }}
+                className="p-1 text-orange-400/70 hover:text-orange-400 transition-colors"
+                title="Unpublish section (all children)"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
+                </svg>
+              </button>
+            </>
+          )}
+
           <button
             onClick={(e) => { e.stopPropagation(); onDelete?.(node.id, node.title) }}
             className="p-1 text-red-400/70 hover:text-red-400 transition-colors"
@@ -176,6 +206,8 @@ export function TreeNode({
               onSelect={onSelect}
               onPublish={onPublish}
               onUnpublish={onUnpublish}
+              onPublishSection={onPublishSection}
+              onUnpublishSection={onUnpublishSection}
               onDelete={onDelete}
             />
           ))}

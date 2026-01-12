@@ -5,15 +5,16 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { DocLayout } from '@/components/layout/DocLayout'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
-import { getDocBySlug, docExists } from '@/lib/mdx/get-doc-by-slug'
-import { getAllDocs } from '@/lib/mdx/get-all-docs'
 import { buildSectionNavTree } from '@/lib/navigation/build-nav-tree'
+import { fetchPageFromApi, pageToMDXDocument } from '@/lib/api/server'
 import type { MDXDocument } from '@/lib/mdx/types'
 
-// Disable ISR revalidation - use pure static generation
-// The wiki folder is not available in the serverless function bundle
-// so runtime revalidation fails. Use rebuild to update content.
-export const revalidate = false
+// Dynamic rendering with ISR caching
+// Pages are fetched from the database API and cached for 60 seconds
+// No static generation - pages are rendered on-demand
+export const revalidate = 60
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
 
 interface DocPageProps {
   params: Promise<{
@@ -22,39 +23,29 @@ interface DocPageProps {
 }
 
 /**
- * Get document from filesystem only
- * API fallback disabled due to Railway database issues
+ * Get document from database via API (database-first)
+ * No filesystem fallback - shows error page if unavailable
  */
-function getDocument(slug: string[]): MDXDocument | null {
-  return getDocBySlug(slug)
+async function getDocument(slug: string[]): Promise<MDXDocument | null> {
+  const slugStr = slug.join('/')
+  const page = await fetchPageFromApi(slugStr)
+
+  if (!page) {
+    return null
+  }
+
+  return pageToMDXDocument(page, slug)
 }
 
-/**
- * Check if document exists in filesystem
- * API fallback disabled due to Railway database issues
- */
-function documentExists(slug: string[]): boolean {
-  return docExists(slug)
-}
-
-/**
- * Generate static params for all documentation pages
- * Uses filesystem for static generation (API pages are dynamic)
- */
-export async function generateStaticParams() {
-  const docs = getAllDocs()
-
-  return docs.map((doc) => ({
-    slug: doc.slug.split('/'),
-  }))
-}
+// No generateStaticParams - pages are rendered dynamically from database
+// This enables full database-first content management
 
 /**
  * Generate metadata for each page
  */
 export async function generateMetadata({ params }: DocPageProps) {
   const { slug } = await params
-  const doc = getDocument(slug)
+  const doc = await getDocument(slug)
 
   if (!doc) {
     return {
@@ -90,16 +81,13 @@ export async function generateMetadata({ params }: DocPageProps) {
 
 /**
  * Documentation page component
+ * Fetches content from database via API (database-first, no filesystem fallback)
  */
 export default async function DocPage({ params }: DocPageProps) {
   const { slug } = await params
 
-  // Check if doc exists in filesystem
-  if (!documentExists(slug)) {
-    notFound()
-  }
-
-  const doc = getDocument(slug)
+  // Fetch document from database via API
+  const doc = await getDocument(slug)
 
   if (!doc) {
     notFound()

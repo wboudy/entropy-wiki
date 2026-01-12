@@ -109,6 +109,56 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handlePublishSection(pageId: string, pageTitle: string) {
+    if (!confirm(`Publish "${pageTitle}" and all its child pages?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/${pageId}/publish-section`, {
+        method: 'POST',
+        headers: {
+          'X-Admin-Password': password,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to publish section')
+      }
+
+      const data = await response.json()
+      alert(`Published ${data.published_count} pages${data.skipped_count > 0 ? ` (${data.skipped_count} skipped)` : ''}`)
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to publish section')
+    }
+  }
+
+  async function handleUnpublishSection(pageId: string, pageTitle: string) {
+    if (!confirm(`Unpublish "${pageTitle}" and all its child pages? They will be moved to draft.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/admin/pages/${pageId}/unpublish-section`, {
+        method: 'POST',
+        headers: {
+          'X-Admin-Password': password,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to unpublish section')
+      }
+
+      const data = await response.json()
+      alert(`Unpublished ${data.unpublished_count} pages`)
+      refreshData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to unpublish section')
+    }
+  }
+
   async function handleDelete(pageId: string, pageTitle: string) {
     if (!confirm(`Are you sure you want to delete "${pageTitle}"? This cannot be undone.`)) {
       return
@@ -317,6 +367,8 @@ export default function AdminDashboard() {
           isLoading={isLoading}
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
+          onPublishSection={handlePublishSection}
+          onUnpublishSection={handleUnpublishSection}
           onDelete={handleDelete}
           onMove={handleMove}
           onReorder={handleReorder}
