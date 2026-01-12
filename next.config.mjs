@@ -6,6 +6,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Force cache purge on rebuild
   reactStrictMode: true,
   async redirects() {
     return [
