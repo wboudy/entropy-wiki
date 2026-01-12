@@ -2,6 +2,28 @@
 
 Quick reference for common deployment issues with the entropy-wiki stack (Vercel + Railway + PostgreSQL).
 
+## Quick Diagnostic Flowchart
+
+```
+Frontend issue (pages return 404)?
+├── Check API: curl https://entropy-wiki-production.up.railway.app/pages
+│   ├── Returns {"error":"database_error"} → See #2 or #7 (database issue)
+│   ├── Returns {"pages":[]} → Run db:seed (no data)
+│   └── Returns {"pages":[...]} → Vercel cache issue, purge CDN
+│
+Admin login returns 500?
+├── Check API: curl -H "X-Admin-Password: XXX" https://entropy-wiki-production.up.railway.app/admin/pages
+│   ├── Returns {"error":"database_error"} → See #2 or #7 (database issue)
+│   ├── Returns "column X does not exist" → See #7 (missing migration)
+│   ├── Returns {"error":"unauthorized"} → Wrong password
+│   └── Returns {"pages":[...]} → Frontend CORS issue, see #3
+│
+Railway API health check fails?
+├── curl https://entropy-wiki-production.up.railway.app/health
+│   ├── Returns {"status":"ok"} → API is up, issue is database
+│   └── Connection refused → Railway service is down, redeploy
+```
+
 ## Architecture Overview
 
 ```
@@ -86,13 +108,17 @@ curl -I -X OPTIONS https://your-api.railway.app/admin/pages \
 
 **Symptoms**: Enter password on `/admin`, get error
 
-**Usually means**: Database error (same as #2 above)
-
-**Verify API auth works**:
+**Check the actual error**:
 ```bash
 curl -H "X-Admin-Password: YOUR_PASSWORD" \
-  https://your-api.railway.app/admin/pages
+  https://entropy-wiki-production.up.railway.app/admin/pages
 ```
+
+**If you see `{"error":"database_error"}`**: Database issue (see #2 above)
+
+**If you see `column "X" does not exist`**: Missing migration (see #7 below)
+
+**If you see `{"error":"unauthorized"}`**: Wrong password or `ADMIN_PASSWORD` not set in Railway
 
 ### 5. Vercel Not Deploying on Push
 
@@ -122,6 +148,131 @@ curl -H "X-Admin-Password: YOUR_PASSWORD" \
 - `CORS_ORIGINS` - your Vercel frontend URL
 - `PORT` - set to `3001` if needed
 
+### 7. Missing Database Column Error (Migration Not Applied)
+
+**Symptoms**: Railway logs show errors like:
+```
+error: column "parent_id" does not exist
+error: column "sort_order" does not exist
+error: column "effective_visibility" does not exist
+```
+
+**Cause**: Database migrations were not fully applied. The schema has multiple migrations:
+- `001_initial.sql` - Creates `pages` and `page_revisions` tables
+- `002_hierarchy.sql` - Adds `parent_id`, `sort_order`, `effective_visibility` columns
+
+**The Problem**: Railway's internal `DATABASE_URL` uses `postgres.railway.internal` hostname which is only accessible from within Railway's network. You cannot run migrations from your local machine using this URL.
+
+**Fix - Get the Public Database URL**:
+
+```bash
+# 1. Install Railway CLI if needed
+npm install -g @railway/cli
+
+# 2. Login to Railway
+railway login
+
+# 3. Link to your project (use non-interactive flags)
+railway link -p diplomatic-surprise -s Postgres
+
+# 4. Get the public DATABASE_URL
+railway variables --json | grep DATABASE_PUBLIC_URL
+# Output: "DATABASE_PUBLIC_URL": "postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:PORT/railway"
+```
+
+**Run Migrations with Public URL**:
+```bash
+cd api
+
+# Use the public URL (from step 4 above)
+DATABASE_URL="postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:PORT/railway" npm run db:migrate
+
+# You should see:
+# Running migrations...
+# Skipping 001_initial (already applied)
+# Applying 002_hierarchy...
+# Applied 002_hierarchy
+# All migrations complete!
+```
+
+**Verify**:
+```bash
+curl https://entropy-wiki-production.up.railway.app/admin/pages \
+  -H "X-Admin-Password: YOUR_PASSWORD"
+# Should return {"pages":[...]} with parent_id, sort_order, effective_visibility fields
+```
+
+### 8. Railway CLI Quick Reference
+
+**Setup**:
+```bash
+# Install
+npm install -g @railway/cli
+
+# Login (opens browser)
+railway login
+
+# Check login status
+railway whoami
+```
+
+**Link to Project**:
+```bash
+# List your projects
+railway list
+
+# Link (interactive - won't work in scripts)
+railway link
+
+# Link (non-interactive)
+railway link -p PROJECT_NAME -s SERVICE_NAME
+
+# Check link status
+railway status
+```
+
+**Environment Variables**:
+```bash
+# View variables (table format)
+railway variables
+
+# View variables (JSON - for scripting)
+railway variables --json
+
+# Key variables for entropy-wiki:
+# - DATABASE_URL (internal, auto-set by Postgres service)
+# - DATABASE_PUBLIC_URL (external, for running migrations locally)
+# - ADMIN_PASSWORD (set manually)
+# - CORS_ORIGINS (set manually)
+```
+
+**Service Management**:
+```bash
+# View all services
+railway service status --all
+
+# View logs
+railway logs
+
+# Redeploy
+railway up
+```
+
+**Database Operations**:
+```bash
+# Link to Postgres service first
+railway link -p diplomatic-surprise -s Postgres
+
+# Get public URL
+railway variables --json | grep DATABASE_PUBLIC_URL
+
+# Run migrations (from api/ directory)
+DATABASE_URL="postgresql://..." npm run db:migrate
+
+# Seed data
+DATABASE_URL="postgresql://..." npm run db:seed
+```
+
 ---
 
 ## Initial Setup Checklist
@@ -134,8 +285,10 @@ curl -H "X-Admin-Password: YOUR_PASSWORD" \
 
 ### Railway PostgreSQL
 - [ ] Database running
-- [ ] Migrations run: `npm run db:migrate`
-- [ ] Data seeded: `npm run db:seed`
+- [ ] Get public DATABASE_URL: `railway link -p diplomatic-surprise -s Postgres && railway variables --json | grep DATABASE_PUBLIC_URL`
+- [ ] Run migrations: `DATABASE_URL="postgresql://..." npm run db:migrate`
+- [ ] Verify both migrations applied: `001_initial` and `002_hierarchy`
+- [ ] Data seeded: `DATABASE_URL="postgresql://..." npm run db:seed`
 
 ### Vercel
 - [ ] Connected to GitHub repo
