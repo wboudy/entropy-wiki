@@ -2,7 +2,8 @@
 .beads/
 
 # Ignore API directory (deployed separately on Railway, not Vercel)
-api/
+# Use explicit path to avoid matching lib/api/
+/api
 
 # Ignore local config files
 *.local.md
