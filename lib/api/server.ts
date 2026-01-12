@@ -16,7 +16,7 @@ const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || '
 export async function fetchPageFromApi(slug: string): Promise<PageWithContent | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/pages/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 0 }, // Always fetch fresh
+      next: { revalidate: 60 }, // Match page-level ISR revalidation
       headers: {
         'Accept': 'application/json',
       },
@@ -46,7 +46,7 @@ export async function fetchPageFromApi(slug: string): Promise<PageWithContent | 
 export async function fetchAllPagesFromApi(): Promise<PageWithContent[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/pages`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 60 }, // Match page-level ISR revalidation
       headers: {
         'Accept': 'application/json',
       },
@@ -91,7 +91,7 @@ export function pageToMDXDocument(page: PageWithContent, slugArray: string[]): M
 export async function isApiAvailable(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/health`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 60 }, // Match page-level ISR revalidation
     });
     return response.ok;
   } catch {
