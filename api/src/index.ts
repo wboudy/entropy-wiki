@@ -4,7 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { pagesRouter } from './routes/pages.js';
 import { adminRouter } from './routes/admin.js';
-import { closePool } from './db/client.js';
+import { closePool, query } from './db/client.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +31,27 @@ app.use(limiter);
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Database health check
+app.get('/health/db', async (_req: Request, res: Response) => {
+  try {
+    const result = await query('SELECT 1 as test, NOW() as time');
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      result: result.rows[0],
+      dbUrl: process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@')
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      error: err.message,
+      code: err.code,
+      dbUrl: process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@')
+    });
+  }
 });
 
 // Public routes
