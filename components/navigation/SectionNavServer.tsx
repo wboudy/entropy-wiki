@@ -19,7 +19,7 @@ export async function SectionNavServer() {
   try {
     // Fetch from API for dynamic navigation based on publish status
     const response = await fetch(`${API_BASE_URL}/pages/nav`, {
-      next: { revalidate: 60 }, // Revalidate every 60 seconds
+      next: { revalidate: 5 }, // Revalidate every 5 seconds for faster publish/unpublish updates
     })
 
     if (response.ok) {

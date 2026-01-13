@@ -17,11 +17,16 @@
     "db:sync": "tsx scripts/sync-wiki-db.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@octokit/rest": "^22.0.1",
+    "cheerio": "^1.1.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "openai": "^6.16.0",
     "pg": "^8.11.3",
+    "turndown": "^7.2.2",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -31,6 +36,7 @@
     "@types/node": "^20.10.0",
     "@types/pg": "^8.10.9",
     "@types/supertest": "^6.0.3",
+    "@types/turndown": "^5.0.6",
     "@types/uuid": "^9.0.7",
     "supertest": "^7.2.2",
     "tsx": "^4.6.2",

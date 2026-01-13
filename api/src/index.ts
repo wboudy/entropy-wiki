@@ -4,7 +4,9 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { pagesRouter } from './routes/pages.js';
 import { adminRouter } from './routes/admin.js';
+import { ingestRouter } from './routes/ingest.js';
 import { closePool, query } from './db/client.js';
+import { startProcessor, stopProcessor } from './services/processor.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -102,6 +104,9 @@ app.use('/pages', pagesRouter);
 // Admin routes (with auth middleware)
 app.use('/admin', adminRouter);
 
+// Ingest routes (with auth middleware)
+app.use('/admin/ingest', ingestRouter);
+
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'not_found', message: 'Endpoint not found' });
@@ -116,12 +121,14 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
+  stopProcessor();
   await closePool();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
+  stopProcessor();
   await closePool();
   process.exit(0);
 });
@@ -129,6 +136,11 @@ process.on('SIGINT', async () => {
 app.listen(PORT, () => {
   console.log(`Entropy Wiki API running on port ${PORT}`);
   console.log(`CORS enabled for: ${corsOrigins.join(', ')}`);
+
+  // Start background job processor
+  if (process.env.ENABLE_INGEST_PROCESSOR !== 'false') {
+    startProcessor();
+  }
 });
 
 export { app };
